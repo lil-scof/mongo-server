@@ -1,4 +1,5 @@
 {
+	"text": "MongoDB Replica Set Deployment [Dev] completed.",
 	"blocks": [
 		{
 			"type": "header",
@@ -12,7 +13,7 @@
 			"type": "section",
 			"text": {
 				"type": "mrkdwn",
-				"text": "*담당자*: @X"
+				"text": "*담당자*: <@X>"
 			}
 		},
 		{
