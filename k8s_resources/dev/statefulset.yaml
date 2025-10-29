@@ -80,7 +80,6 @@ spec:
   - metadata:
       name: data
     spec:
-      storageClassName: scof-dev-sc
       accessModes: [ "ReadWriteOnce" ]
       resources:
         requests:
