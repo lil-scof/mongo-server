@@ -74,7 +74,7 @@ spec:
           secretName: scof-dev-secret
           defaultMode: 256
           items:
-          - key: mongodb.key
+          - key: MONGODB_KEY
             path: mongodb.key
   volumeClaimTemplates:
   - metadata:
