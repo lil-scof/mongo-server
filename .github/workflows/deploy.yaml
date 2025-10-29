@@ -56,6 +56,7 @@ jobs:
       env:
         KUBECONFIG: kubeconfig
       run: |
+        # Apply resources without deleting PVCs to preserve data
         kubectl apply -f k8s_resources/dev/service-headless.yaml
         kubectl apply -f k8s_resources/dev/statefulset.yaml
         kubectl apply -f k8s_resources/dev/service.yaml
