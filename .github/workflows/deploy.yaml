@@ -1,0 +1,68 @@
+name: MongoDB Replica Set Deployment
+on:
+  push:
+    branches:
+      - develop
+      - feat-1
+
+env:
+  MONGODB_NAMESPACE: scof-dev
+jobs:
+  deploy:
+    name: Deploy MongoDB Replica Set
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Install kubectl
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y curl ca-certificates gettext-base
+        curl -sSL https://storage.googleapis.com/kubernetes-release/release/stable.txt -o /tmp/kver
+        KVER=$(cat /tmp/kver)
+        curl -sSL -o kubectl https://storage.googleapis.com/kubernetes-release/release/${KVER}/bin/linux/amd64/kubectl
+        chmod +x kubectl && sudo mv kubectl /usr/local/bin/kubectl
+        kubectl version --client=true
+
+    - name: Install OpenVPN
+      run: |
+        sudo apt-get install -y openvpn iproute2
+
+    - name: Write OVPN config from secret
+      run: |
+        printf "%s\n" "${{ secrets.OVPN_FILE }}" > vpn.ovpn
+
+    - name: Start OpenVPN (daemon) and wait
+      run: |
+        sudo openvpn --config vpn.ovpn --daemon --log-append "$(pwd)/vpn.log" --writepid vpn.pid
+        echo "OpenVPN started"
+        for i in {1..30}; do
+          if sudo grep -q "Initialization Sequence Completed" vpn.log; then
+            break
+          fi
+          sleep 2
+        done
+    
+    - name: Write kubeconfig from secret (raw)
+      run: |
+        printf "%s" "${{ secrets.KUBECONFIG }}" > kubeconfig
+        chmod 600 kubeconfig
+        grep -q '^apiVersion:' kubeconfig || { echo "::error::kubeconfig looks invalid"; exit 1; }
+  
+    - name: Deployment to K8S (Dev)
+      env:
+        KUBECONFIG: kubeconfig
+      run: |
+        kubectl apply -f k8s_resources/dev/service-headless.yaml
+        kubectl apply -f k8s_resources/dev/statefulset.yaml
+        kubectl apply -f k8s_resources/dev/service.yaml
+
+    - name: Notify to Slack (dev)
+      uses: slackapi/slack-github-action@v1.19.0
+      with:
+        payload-file-path: "./assets/slack-payload/deploy-dev.json"
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_HOOK_BOT_SCOF_DEVOPS }}
+        SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK

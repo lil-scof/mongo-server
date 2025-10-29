@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongodb
+  namespace: scof-dev
+spec:
+  serviceName: mongodb-headless
+  replicas: 3
+  selector:
+    matchLabels:
+      app: mongodb
+  template:
+    metadata:
+      labels:
+        app: mongodb
+    spec:
+      containers:
+      - name: mongo
+        image: mongo:latest
+        ports:
+        - containerPort: 27017
+          name: mongodb
+        env:
+        - name: MONGO_INITDB_ROOT_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: scof-dev-secret
+              key: MONGO_INITDB_ROOT_USERNAME
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: scof-dev-secret
+              key: MONGO_INITDB_ROOT_PASSWORD
+        - name: REPLICA_SET_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: scof-dev-config
+              key: replica-set-name
+        command:
+        - mongod
+        - --replSet
+        - $(REPLICA_SET_NAME)
+        - --keyFile
+        - /etc/mongodb.key
+        - --bind_ip_all
+        volumeMounts:
+        - name: data
+          mountPath: /data/db
+        - name: mongodb-key
+          mountPath: /etc/mongodb.key
+          subPath: mongodb.key
+          readOnly: true
+        readinessProbe:
+          exec:
+            command:
+            - mongosh
+            - --eval
+            - "db.adminCommand('ping')"
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+        livenessProbe:
+          exec:
+            command:
+            - mongosh
+            - --eval
+            - "db.adminCommand('ping')"
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+      volumes:
+      - name: mongodb-key
+        secret:
+          secretName: scof-dev-secret
+          items:
+          - key: mongodb.key
+            path: mongodb.key
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 10Gi
