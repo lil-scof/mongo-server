@@ -9,7 +9,7 @@ env:
   MONGODB_NAMESPACE: scof-dev
 jobs:
   deploy:
-    name: Deploy MongoDB Replica Set
+    name: Deploy
     runs-on: ubuntu-latest
     
     steps:

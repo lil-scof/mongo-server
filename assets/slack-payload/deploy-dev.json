@@ -4,7 +4,7 @@
 			"type": "header",
 			"text": {
 				"type": "plain_text",
-				"text": ":party_blob: MongoDB Replica Set Deployment [Dev]가 리로드되었습니다!",
+				"text": ":dart: MongoDB Replica Set Deployment [Dev]가 배포되었습니다!",
 				"emoji": true
 			}
 		},
