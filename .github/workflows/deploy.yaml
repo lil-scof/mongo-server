@@ -6,7 +6,7 @@ on:
 
 env:
   MONGODB_NAMESPACE: scof-dev
-  VERSION: 0.0.3
+  VERSION: 0.1.0
 jobs:
   deploy:
     name: Deploy
@@ -59,6 +59,14 @@ jobs:
         kubectl apply -f k8s_resources/dev/service-headless.yaml
         kubectl apply -f k8s_resources/dev/statefulset.yaml
         kubectl apply -f k8s_resources/dev/service.yaml
+
+    - name: Ensure MongoDB admin user
+      env:
+        KUBECONFIG: kubeconfig
+      run: |
+        # Create/ensure admin user exists (idempotent)
+        kubectl apply -f k8s_resources/dev/job-ensure-admin.yaml
+        kubectl -n scof-dev wait --for=condition=complete job/mongodb-ensure-admin --timeout=180s || true
 
     - name: Notify to Slack (dev)
       uses: slackapi/slack-github-action@v1.19.0
