@@ -25,12 +25,12 @@ spec:
           valueFrom:
             secretKeyRef:
               name: scof-dev-secret
-              key: MONGODB_USERNAME
+              key: MONGO_INITDB_ROOT_USERNAME
         - name: MONGO_INITDB_ROOT_PASSWORD
           valueFrom:
             secretKeyRef:
               name: scof-dev-secret
-              key: MONGODB_PASSWORD
+              key: MONGO_INITDB_ROOT_PASSWORD
         - name: REPLICA_SET_NAME
           valueFrom:
             configMapKeyRef:
