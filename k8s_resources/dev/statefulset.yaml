@@ -56,19 +56,17 @@ spec:
             - sh
             - -c
             - >-
-              mongosh -u "$MONGO_INITDB_ROOT_USERNAME" -p "$MONGO_INITDB_ROOT_PASSWORD" \
-              --authenticationDatabase admin --quiet --eval 'db.adminCommand("ping")'
+              if [ -n "$MONGO_INITDB_ROOT_USERNAME" ] && [ -n "$MONGO_INITDB_ROOT_PASSWORD" ]; then
+                mongosh "mongodb://$MONGO_INITDB_ROOT_USERNAME:$MONGO_INITDB_ROOT_PASSWORD@127.0.0.1:27017/?authSource=admin&directConnection=true" --quiet --eval 'db.adminCommand("ping")';
+              else
+                mongosh "mongodb://127.0.0.1:27017/?directConnection=true" --quiet --eval 'db.adminCommand("ping")';
+              fi
           initialDelaySeconds: 10
           periodSeconds: 5
           timeoutSeconds: 5
         livenessProbe:
-          exec:
-            command:
-            - sh
-            - -c
-            - >-
-              mongosh -u "$MONGO_INITDB_ROOT_USERNAME" -p "$MONGO_INITDB_ROOT_PASSWORD" \
-              --authenticationDatabase admin --quiet --eval 'db.adminCommand("ping")'
+          tcpSocket:
+            port: 27017
           initialDelaySeconds: 30
           periodSeconds: 10
           timeoutSeconds: 5
