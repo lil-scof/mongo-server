@@ -68,6 +68,28 @@ jobs:
         kubectl apply -f k8s_resources/dev/job-ensure-admin.yaml
         kubectl -n scof-dev wait --for=condition=complete job/mongodb-ensure-admin --timeout=180s || true
 
+    - name: Prefer mongodb-0 as PRIMARY (priority + optional stepUp)
+      env:
+        KUBECONFIG: kubeconfig
+      run: |
+        set -e
+        echo "Fetching credentials..."
+        USER=$(kubectl -n scof-dev get secret scof-dev-secret -o jsonpath='{.data.MONGO_INITDB_ROOT_USERNAME}' | base64 -d)
+        PASS=$(kubectl -n scof-dev get secret scof-dev-secret -o jsonpath='{.data.MONGO_INITDB_ROOT_PASSWORD}' | base64 -d)
+
+        echo "Checking replica set status..."
+        RS_OK=$(kubectl -n scof-dev exec mongodb-0 -- bash -lc "mongosh -u '$USER' -p '$PASS' --authenticationDatabase admin --quiet --eval 'try{rs.status().ok}catch(e){0}'" || echo 0)
+        if [ "$RS_OK" != "1" ]; then
+          echo "Replica set not initialized yet; skipping priority/stepUp"
+          exit 0
+        fi
+
+        echo "Applying preferred priorities (0>1=2)..."
+        kubectl -n scof-dev exec mongodb-0 -- bash -lc "mongosh -u '$USER' -p '$PASS' --authenticationDatabase admin --quiet --eval \"cfg=rs.conf(); cfg.members=[{ _id:0, host:'mongodb-0.mongodb-headless.scof-dev.svc.cluster.local:27017', priority:2 }, { _id:1, host:'mongodb-1.mongodb-headless.scof-dev.svc.cluster.local:27017', priority:1 }, { _id:2, host:'mongodb-2.mongodb-headless.scof-dev.svc.cluster.local:27017', priority:1 }]; rs.reconfig(cfg,{force:true})\"" || true
+
+        echo "Attempting stepUp on mongodb-0..."
+        kubectl -n scof-dev exec mongodb-0 -- bash -lc "mongosh -u '$USER' -p '$PASS' --authenticationDatabase admin --quiet --eval \"db.adminCommand({replSetStepUp:1})\"" || true
+
     - name: Notify to Slack (dev)
       uses: slackapi/slack-github-action@v1.19.0
       with:
