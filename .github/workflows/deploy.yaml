@@ -58,7 +58,7 @@ jobs:
         # Apply resources without deleting PVCs to preserve data
         kubectl apply -f k8s_resources/dev/service-headless.yaml
         kubectl apply -f k8s_resources/dev/statefulset.yaml
-        kubectl apply -f k8s_resources/dev/service.yaml
+        kubectl apply -f k8s_resources/dev/service-primary.yaml
 
     - name: Ensure MongoDB admin user
       env:
