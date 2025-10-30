@@ -1,0 +1,52 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mongodb-ensure-admin
+  namespace: scof-dev
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: ensure-admin
+        image: mongo:latest
+        env:
+        - name: MONGO_INITDB_ROOT_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: scof-dev-secret
+              key: MONGO_INITDB_ROOT_USERNAME
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: scof-dev-secret
+              key: MONGO_INITDB_ROOT_PASSWORD
+        command:
+        - bash
+        - -lc
+        - |
+          set -euo pipefail
+          HOST="mongodb-0.mongodb-headless.scof-dev.svc.cluster.local:27017"
+          echo "Waiting for PRIMARY..."
+          for i in {1..120}; do
+            if mongosh --quiet --host "$HOST" --eval 'try{db.hello().isWritablePrimary?1:0}catch(e){0}' | grep -q '^1$'; then
+              echo "PRIMARY is ready"; break
+            fi
+            sleep 2
+          done
+
+          echo "Ensuring admin user exists..."
+          mongosh --quiet --host "$HOST" <<'EOS'
+          const user = process.env.MONGO_INITDB_ROOT_USERNAME;
+          const pass = process.env.MONGO_INITDB_ROOT_PASSWORD;
+          const admin = db.getSiblingDB('admin');
+          const exists = admin.getUser(user);
+          if (!exists) {
+            print(`[ensure-admin] creating admin user ${user}`);
+            admin.createUser({ user: user, pwd: pass, roles: [ { role: 'root', db: 'admin' } ] });
+          } else {
+            print(`[ensure-admin] admin user ${user} already exists`);
+          }
+          EOS
+

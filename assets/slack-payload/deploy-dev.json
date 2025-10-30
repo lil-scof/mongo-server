@@ -1,0 +1,23 @@
+{
+	"text": "MongoDB Replica Set Deployment [Dev] completed.",
+	"blocks": [
+		{
+			"type": "header",
+			"text": {
+				"type": "plain_text",
+				"text": ":dart: MongoDB Replica Set Deployment [Dev]가 배포되었습니다!",
+				"emoji": true
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "*담당자*: <@X>"
+			}
+		},
+		{
+			"type": "divider"
+		}
+	]
+}
