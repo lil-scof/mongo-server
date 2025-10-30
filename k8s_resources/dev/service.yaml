@@ -4,10 +4,11 @@ metadata:
   name: mongodb-service
   namespace: scof-dev
 spec:
-  type: ClusterIP
+  type: NodePort
   selector:
     app: mongodb
   ports:
   - port: 27017
     targetPort: 27017
+    nodePort: 30002
     name: mongodb
